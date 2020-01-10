@@ -1,21 +1,24 @@
 Summary: MPI Benchmarks and tests
 Name: mpitests
 Version: 3.2
-Release: 4%{?dist}
+Release: 5%{?dist}
 License: BSD
-Group: Applications
+Group: Applications/Engineering
+# We get the mpitests.tar.gz file from an OFED release.
+# Unfortunately, they're not good about changing the name
+# of the tarball when they change the contents.
+URL: http://www.openfabrics.org
 Source: mpitests-%{version}.tar.gz
 Patch0: mpitests-2.0-make.patch
 Provides: mpitests
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 # mvapich2 only exists on these three arches
 ExclusiveArch: i686 i386 x86_64 ia64
 
 %description
 Set of popular MPI benchmarks:
-IMB-2.3
+IMB-3.2
 Presta-1.4.0
-OSU benchmarks ver 2.2
+OSU benchmarks ver 3.1.1
 
 %package openmpi
 Summary: MPI tests package compiled against openmpi
@@ -40,14 +43,6 @@ BuildRequires: librdmacm-devel, libibumad-devel
 MPI test suite compiled against the mvapich2 package
 
 %ifarch x86_64
-%package openmpi-psm
-Summary: MPI tests package compiled against openmpi using InfiniPath
-Group: Applications
-BuildRequires: openmpi-psm >= 1.4, openmpi-psm-devel
-BuildRequires: infinipath-psm-devel
-%description openmpi-psm
-MPI test suite compiled against the openmpi package using InfiniPath
-
 %package mvapich-psm
 Summary: MPI tests package compiled against mvapich using InfiniPath
 Group: Applications
@@ -100,9 +95,6 @@ do_build osu-mpi1 presta
 do_build all
 %{_mvapich2_unload}
 %ifarch x86_64
-%{_openmpi_psm_load}
-do_build all
-%{_openmpi_psm_unload}
 
 %{_mvapich_psm_load}
 do_build osu-mpi1 presta
@@ -130,11 +122,6 @@ mkdir -p %{buildroot}$MPI_BIN
 make -C $MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
 %{_mvapich2_unload}
 %ifarch x86_64
-%{_openmpi_psm_load}
-mkdir -p %{buildroot}$MPI_BIN
-make -C $MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
-%{_openmpi_psm_unload}
-
 %{_mvapich_psm_load}
 mkdir -p %{buildroot}$MPI_BIN
 make -C $MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
@@ -159,11 +146,8 @@ rm -rf %{buildroot}
 %files mvapich2
 %defattr(-, root, root, -)
 %{_libdir}/mvapich2/bin/*
-%ifarch x86_64
-%files openmpi-psm
-%defattr(-, root, root, -)
-%{_libdir}/openmpi-psm/bin/*
 
+%ifarch x86_64
 %files mvapich-psm
 %defattr(-, root, root, -)
 %{_libdir}/mvapich-psm/bin/*
@@ -173,6 +157,15 @@ rm -rf %{buildroot}
 %{_libdir}/mvapich2-psm/bin/*
 %endif
 %changelog
+* Tue Feb 21 2012 Jay Fenlason <fenlason@redhat.com> 3.2-5.el6
+- Rebuild against newer infinipath-psm, openmpi, mvapich, mvapich2
+  This removes the openmpi-psm subpackage, as openmpi now switches between
+   psm and non- at runtime.
+- Correct version numbers for IMB and OSU benchmarkes in the description.
+- Update spec file to fix pkgwrangler warnings.
+  Resolves: rhbz557803
+  Related: rhbz739138
+
 * Mon Aug 22 2011 Jay Fenlason <fenlason@redhat.com> 3.2-4.el6
 - BuildRequires infinipath-psm-devel for the infinipath subpackages.
   Related: rhbz725016
