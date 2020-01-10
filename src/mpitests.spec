@@ -112,9 +112,6 @@ OSU benchmarks ver 3.1.1
 %files 
 %defattr(-, root, root)
 %{test_home}/IMB-3.2/IMB-MPI1
-%{test_home}/presta-1.4.0/com
-%{test_home}/presta-1.4.0/glob
-%{test_home}/presta-1.4.0/globalop
 %{test_home}/osu_benchmarks-3.1.1/osu_bw
 %{test_home}/osu_benchmarks-3.1.1/osu_bibw
 %{test_home}/osu_benchmarks-3.1.1/osu_latency

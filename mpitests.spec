@@ -1,23 +1,24 @@
 Summary: MPI Benchmarks and tests
 Name: mpitests
 Version: 3.2
-Release: 5%{?dist}
+Release: 9%{?dist}
 License: BSD
 Group: Applications/Engineering
 # We get the mpitests.tar.gz file from an OFED release.
 # Unfortunately, they're not good about changing the name
 # of the tarball when they change the contents.
 URL: http://www.openfabrics.org
-Source: mpitests-%{version}.tar.gz
-Patch0: mpitests-2.0-make.patch
+Source: mpitests-%{version}-rh.tar.gz
+Patch0: mpitests-3.2-make.patch
+Patch1: mpitests-win-free.patch
 Provides: mpitests
+BuildRequires: hwloc-devel
 # mvapich2 only exists on these three arches
 ExclusiveArch: i686 i386 x86_64 ia64
 
 %description
 Set of popular MPI benchmarks:
 IMB-3.2
-Presta-1.4.0
 OSU benchmarks ver 3.1.1
 
 %package openmpi
@@ -62,9 +63,9 @@ MPI test suite compiled against the mvapich2 package using InfiniPath
 %endif
 
 %prep
-%setup -q -a 0
-# secretly patch the code one layer down, not at the top level
-%patch0 -p0 -b .make
+%setup -q
+%patch0 -p1 -b .make
+%patch1 -p1 -b.win_free
 
 %build
 RPM_OPT_FLAGS=`echo $RPM_OPT_FLAGS | sed -e 's/-Wp,-D_FORTIFY_SOURCE=.//' | sed -e 's/-fstack-protector//'`
@@ -75,8 +76,10 @@ export FC=mpif90
 export F77=mpif77
 export CFLAGS="$RPM_OPT_FLAGS -fno-strict-aliasing"
 do_build() { 
-  cp -al %{name}-%{version} $MPI_COMPILER
-  cd $MPI_COMPILER
+  mkdir .$1
+  cp -al * .$1
+  cd .$1
+  shift
   make $*
   cd ..
 }
@@ -84,24 +87,24 @@ do_build() {
 
 # do N builds, one for each mpi stack
 %{_openmpi_load}
-do_build all
+do_build openmpi all
 %{_openmpi_unload}
 
 %{_mvapich_load}
-do_build osu-mpi1 presta
+do_build mvapich osu-mpi1
 %{_mvapich_unload}
 
 %{_mvapich2_load}
-do_build all
+do_build mvapich2 all
 %{_mvapich2_unload}
 %ifarch x86_64
 
 %{_mvapich_psm_load}
-do_build osu-mpi1 presta
+do_build mvapich-psm osu-mpi1
 %{_mvapich_psm_unload}
 
 %{_mvapich2_psm_load}
-do_build all
+do_build mvapich2-psm all
 %{_mvapich2_psm_unload}
 %endif
 %install
@@ -109,27 +112,27 @@ rm -rf %{buildroot}
 # do N installs, one for each mpi stack
 %{_openmpi_load}
 mkdir -p %{buildroot}$MPI_BIN
-make -C $MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
+make -C .openmpi DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
 %{_openmpi_unload}
 
 %{_mvapich_load}
 mkdir -p %{buildroot}$MPI_BIN
-make -C $MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
+make -C .mvapich DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
 %{_mvapich_unload}
 
 %{_mvapich2_load}
 mkdir -p %{buildroot}$MPI_BIN
-make -C $MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
+make -C .mvapich2 DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
 %{_mvapich2_unload}
 %ifarch x86_64
 %{_mvapich_psm_load}
 mkdir -p %{buildroot}$MPI_BIN
-make -C $MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
+make -C .mvapich-psm DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
 %{_mvapich_psm_unload}
 
 %{_mvapich2_psm_load}
 mkdir -p %{buildroot}$MPI_BIN
-make -C $MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
+make -C .mvapich2-psm DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
 %{_mvapich2_psm_unload}
 %endif
 %clean
@@ -157,6 +160,15 @@ rm -rf %{buildroot}
 %{_libdir}/mvapich2-psm/bin/*
 %endif
 %changelog
+* Wed Aug 28 2013 Jay Fenlason <fenlason@redhat.com> 3.2-9
+- Backport fixes from RHEL-7
+  Resolves: rhbz1002332
+
+* Mon Mar 4 2013 Jay Fenlason <fenlason@redhat.com> 3.2-7
+- include BuildRequires: hwloc-devel from RHEL-7.0
+- Add win_free patch to close
+  Resolves: rhbz734023
+
 * Tue Feb 21 2012 Jay Fenlason <fenlason@redhat.com> 3.2-5.el6
 - Rebuild against newer infinipath-psm, openmpi, mvapich, mvapich2
   This removes the openmpi-psm subpackage, as openmpi now switches between

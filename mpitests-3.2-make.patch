@@ -70,40 +70,9 @@
 -export MPI_INCLUDE CC LIB_PATH LIBS OPTFLAGS CLINKER LDFLAGS CPPFLAGS
 +export CC OPTFLAGS CLINKER LDFLAGS CPPFLAGS
  include Makefile.base
---- mpitests-3.2/presta-1.4.0/Makefile.make	2006-08-01 04:25:21.000000000 -0400
-+++ mpitests-3.2/presta-1.4.0/Makefile	2010-01-17 10:01:53.102371618 -0500
-@@ -6,14 +6,7 @@
- #
- 
- #  Default values
--MPIHOME=
--CC=$(MPIHOME)/bin/mpicc
- DISTRIB=
--STACK_PREFIX=
--LIBS= -lm -L$(MPIHOME)/lib/shared -L$(MPIHOME)/lib -L$(DISTRIB)/$(STACK_PREFIX)/lib64 -L$(DISTRIB)/$(STACK_PREFIX)/lib
--CFLAGS= -O2 -g -I$(MPIHOME)/include
--LDFLAGS= 
--INCDIR=
- 
- #  Setting for using gcc for lint
- LINT=
-@@ -45,7 +38,12 @@ glob: glob.o util.o 
- 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ glob.o util.o $(LIBS)
- 
- globalop: globalop.o 
--	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ globalop.o $(LIBS)
-+	$(CC) $(CFLAGS) $(LDFLAGS) -lm -o $@ globalop.o $(LIBS)
-+
-+install: $(EXES)
-+	for i in $(EXES); do \
-+		install -m 0755 $$i $(DESTDIR)$(INSTALL_DIR)/mpitests-$$i ; \
-+	done
- 
- clean:
- 	rm -f $(EXES) *.o
---- mpitests-3.2/Makefile.make	2009-11-15 11:09:36.000000000 -0500
-+++ mpitests-3.2/Makefile	2010-01-17 10:01:53.101371937 -0500
-@@ -1,46 +1,32 @@
+--- mpitests-3.2/Makefile.make	2013-08-27 10:45:52.000000000 -0400
++++ mpitests-3.2/Makefile	2013-08-27 12:10:36.000000000 -0400
+@@ -1,36 +1,24 @@
 -CFLAGS = 
 -MPIHOME=./
 -CC = 
@@ -113,52 +82,42 @@
 -SRCS = 
 -INSTALL_DIR=tests/
 -INSTALL_IMB=IMB-3.2
--INSTALL_PRESTA=presta-1.4.0
 -INSTALL_OSU=osu_benchmarks-3.1.1
+-all: ibm osu
+-install: install-ibm install-osu
 +CC = mpicc
 +IMB=IMB-3.2
 +PRESTA=presta-1.4.0
 +OSU=osu_benchmarks-3.1.1
 +
- all: ibm osu presta
- install: install-ibm install-presta install-osu
-+clean: clean-ibm clean-presta clean-osu 
++all: imb osu
++install: install-imb install-osu
++clean: clean-imb clean-osu
  
  # The variable $@ has the value of the target. 
- ibm: 
+-ibm: 
 -	cd $(PWD)/$(INSTALL_IMB)/src && make MPIHOME=$(MPIHOME) IMB-MPI1
++imb: 
 +	cd $(IMB)/src && make all
  osu: 
 -	cd $(PWD)/$(INSTALL_OSU) && make MPIHOME=$(MPIHOME)
-+	cd $(OSU) && make all
-+osu-mpi1:
-+	cd $(OSU) && make mpi1
- presta:
--	cd $(PWD)/$(INSTALL_PRESTA) && make MPIHOME=$(MPIHOME)
-+	cd $(PRESTA) && make all
-+
- clean-ibm: 
+-clean-ibm: 
 -	cd $(PWD)/$(INSTALL_IMB)/src && make MPIHOME=$(MPIHOME) clean
++	cd $(OSU) && make all
++osu-mpi1: 
++	cd $(OSU) && make mpi1
++clean-imb: 
 +	cd $(IMB)/src && make clean
  clean-osu: 
 -	cd $(PWD)/$(INSTALL_OSU) && make MPIHOME=$(MPIHOME) clean
-+	cd $(OSU) && make clean
- clean-presta:
--	cd $(PWD)/$(INSTALL_PRESTA) && make MPIHOME=$(MPIHOME) clean
--clean: clean-ibm clean-presta clean-osu 
+-clean: clean-ibm clean-osu 
 -	rm -rf $(MPIHOME)/$(INSTALL_DIR)
-+	cd $(PRESTA) && make clean
-+
- install-ibm:
+-install-ibm:
 -	mkdir -p $(MPIHOME)/$(INSTALL_DIR)/$(INSTALL_IMB)
 -	cp -f $(INSTALL_IMB)/src/IMB-MPI1 $(MPIHOME)/$(INSTALL_DIR)/$(INSTALL_IMB)
++	cd $(OSU) && make clean
++install-imb:
 +	cd $(IMB)/src && make install
- install-presta:
--	mkdir -p $(MPIHOME)/$(INSTALL_DIR)/$(INSTALL_PRESTA)
--	cp -f $(INSTALL_PRESTA)/com    		$(MPIHOME)/$(INSTALL_DIR)/$(INSTALL_PRESTA)
--	cp -f $(INSTALL_PRESTA)/glob     	$(MPIHOME)/$(INSTALL_DIR)/$(INSTALL_PRESTA)
--	cp -f $(INSTALL_PRESTA)/globalop 	$(MPIHOME)/$(INSTALL_DIR)/$(INSTALL_PRESTA)
-+	cd $(PRESTA) && make install
  install-osu:
 -	mkdir -p $(MPIHOME)/$(INSTALL_DIR)/$(INSTALL_OSU)
 -	cp -f $(INSTALL_OSU)/osu_bw		    $(MPIHOME)/$(INSTALL_DIR)/$(INSTALL_OSU)

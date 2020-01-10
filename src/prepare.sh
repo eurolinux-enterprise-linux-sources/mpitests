@@ -13,7 +13,6 @@ name=mpitests
 # test list
 TEST1=osu_benchmarks-3.1.1
 TEST2=IMB-3.2
-TEST3=presta-1.4.0
 SPECFILE=mpitests.spec
 SVNLOC=svn://mtls50/svn.mpi/trunk/ibed/mpitests
 topdir=/tmp/rpms
