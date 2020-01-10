@@ -1,36 +1,48 @@
 Summary: MPI Benchmarks and tests
 Name: mpitests
-Version: 4.1
-Release: 1%{?dist}
+Version: 5.4
+Release: 2%{?dist}
 License: CPL and BSD
 Group: Applications/Engineering
 # These days we get the benchmark soucres from Intel and OSU directly
 # rather than from openfabrics.
 URL: http://www.openfabrics.org
 # https://software.intel.com/en-us/articles/intel-mpi-benchmarks
-Source0: https://software.intel.com/sites/default/files/managed/a3/b2/IMB_4.1.tgz
-Source1: http://mvapich.cse.ohio-state.edu/download/mvapich/osu-micro-benchmarks-5.3.tar.gz
-Patch0: 0001-imb-fix-Makefiles.patch
-Patch1: 0001-mpi-collective-no-async-ops-MPI_I.patch
-BuildRequires: hwloc-devel, libibmad-devel
+Source0: https://github.com/intel/mpi-benchmarks/archive/v2018.0.tar.gz
+Source1: http://mvapich.cse.ohio-state.edu/download/mvapich/osu-micro-benchmarks-5.4.tar.gz
+# Only for old openmpi
+Patch101: OMB-disable-collective-async.patch
+BuildRequires: hwloc-devel, libibmad-devel, rdma-core-devel
 
 %description
-Set of popular MPI benchmarks:
-IMB-4.1
-OSU benchmarks ver 5.3
+A set of popular MPI benchmarks:
+Intel MPI benchmarks 2018.0.
+OSU micro-benchmarks 5.4.
 
 %package openmpi
 Summary: MPI tests package compiled against openmpi
 Group: Applications
 BuildRequires: openmpi-devel >= 1.4
+Requires: openmpi%{?_isa}
 %description openmpi
 MPI test suite compiled against the openmpi package
+
+# openmpi 3.0.0 dropped support for big endian ppc
+%ifnarch ppc ppc64
+%package openmpi3
+Summary: MPI tests package compiled against openmpi3
+Group: Applications
+BuildRequires: openmpi3-devel
+Requires: openmpi3%{?_isa}
+%description openmpi3
+MPI test suite compiled against the openmpi3 package
+%endif
 
 %package mpich
 Summary: MPI tests package compiled against mpich
 Group: Applications
 BuildRequires: mpich-devel >= 3.0.4
-BuildRequires: librdmacm-devel, libibumad-devel
+Requires: mpich%{?_isa}
 %description mpich
 MPI test suite compiled against the mpich package
 
@@ -38,7 +50,7 @@ MPI test suite compiled against the mpich package
 Summary: MPI tests package compiled against mpich-3.2
 Group: Applications
 BuildRequires: mpich-3.2-devel
-BuildRequires: librdmacm-devel, libibumad-devel
+Requires: mpich-3.2%{?_isa}
 %description mpich32
 MPI test suite compiled against the mpich-3.2 package
 
@@ -48,7 +60,7 @@ MPI test suite compiled against the mpich-3.2 package
 Summary: MPI tests package compiled against mvapich2
 Group: Applications
 BuildRequires: mvapich2-devel >= 1.4
-BuildRequires: librdmacm-devel, libibumad-devel
+Requires: mvapich2%{?_isa}
 %description mvapich2
 MPI test suite compiled against the mvapich2 package
 
@@ -56,15 +68,24 @@ MPI test suite compiled against the mvapich2 package
 Summary: MPI tests package compiled against mvapich2-2.2
 Group: Applications
 BuildRequires: mvapich2-2.2-devel
-BuildRequires: librdmacm-devel, libibumad-devel
+Requires: mvapich2-2.2%{?_isa}
 %description mvapich222
 MPI test suite compiled against the mvapich2-2.2 package
+
+%package mvapich23
+Summary: MPI tests package compiled against mvapich23
+Group: Applications
+BuildRequires: mvapich23-devel
+Requires: mvapich23%{?_isa}
+%description mvapich23
+MPI test suite compiled against the mvapich23 package
 
 # s390(x) did not have openmpi-1.6
 %package compat-openmpi16
 Summary: MPI tests package compiled against compat-openmpi16
 Group: Applications
 BuildRequires: compat-openmpi16-devel
+Requires: compat-openmpi16%{?_isa}
 %description compat-openmpi16
 MPI test suite compiled against the compat-openmpi16 package
 %endif
@@ -75,8 +96,8 @@ MPI test suite compiled against the compat-openmpi16 package
 Summary: MPI tests package compiled against mvapich2 using InfiniPath
 Group: Applications
 BuildRequires: mvapich2-psm-devel >= 1.4
-BuildRequires: librdmacm-devel, libibumad-devel
 BuildRequires: infinipath-psm-devel
+Requires: mvapich2-psm%{?_isa}
 %description mvapich2-psm
 MPI test suite compiled against the mvapich2 package using InfiniPath
 
@@ -84,8 +105,8 @@ MPI test suite compiled against the mvapich2 package using InfiniPath
 Summary: MPI tests package compiled against mvapich2-2.2 using InfiniPath
 Group: Applications
 BuildRequires: mvapich2-2.2-psm-devel
-BuildRequires: librdmacm-devel, libibumad-devel
 BuildRequires: infinipath-psm-devel
+Requires: mvapich2-2.2-psm%{?_isa}
 %description mvapich222-psm
 MPI test suite compiled against the mvapich2-2.2 package using InfiniPath
 
@@ -93,19 +114,33 @@ MPI test suite compiled against the mvapich2-2.2 package using InfiniPath
 Summary: MPI tests package compiled against mvapich2-2.2 using OmniPath
 Group: Applications
 BuildRequires: mvapich2-2.2-psm2-devel
-BuildRequires: librdmacm-devel, libibumad-devel
 BuildRequires: libpsm2-devel
+Requires: mvapich2-2.2-psm2%{?_isa}
 %description mvapich222-psm2
 MPI test suite compiled against the mvapich2-2.2 package using OmniPath
+
+%package mvapich23-psm
+Summary: MPI tests package compiled against mvapich23-psm
+Group: Applications
+BuildRequires: mvapich23-psm-devel
+Requires: mvapich23-psm%{?_isa}
+%description mvapich23-psm
+MPI test suite compiled against the mvapich23-psm package
+
+%package mvapich23-psm2
+Summary: MPI tests package compiled against mvapich23-psm2
+Group: Applications
+BuildRequires: mvapich23-psm2-devel
+Requires: mvapich23-psm2%{?_isa}
+%description mvapich23-psm2
+MPI test suite compiled against the mvapich23-psm2 package
+
 %endif
 
 %prep
 %setup -c 
 %setup -T -D -a 1
-cd imb
-%patch0 -p1 -b.make
-cd ../osu-micro-benchmarks-5.3
-%patch1 -p1 -b.noasync
+cd osu-micro-benchmarks-5.4
 cd ..
 
 %build
@@ -117,11 +152,11 @@ export FC=mpif90
 export F77=mpif77
 export CFLAGS="$RPM_OPT_FLAGS -fno-strict-aliasing"
 do_build() {
-  mkdir .$MPI_COMPILER
-  cp -al * .$MPI_COMPILER
-  cd .$MPI_COMPILER/imb/src
-  make -f make_mpich OPTFLAGS="%{optflags}" IMB-MPI1 IMB-EXT IMB-IO
-  cd ../../osu-micro-benchmarks-5.3
+  mkdir build-$MPI_COMPILER
+  cp -al mpi-benchmarks-2018.0 osu-micro-benchmarks-5.4 build-$MPI_COMPILER
+  cd build-$MPI_COMPILER/mpi-benchmarks-2018.0/src
+  make -f make_mpich OPTFLAGS="%{optflags}" MPI_HOME="$MPI_HOME" all
+  cd ../../osu-micro-benchmarks-5.4
   %configure
   make %{?_smp_mflags}
   cd ../..
@@ -132,6 +167,12 @@ do_build() {
 do_build
 %{_openmpi_unload}
 
+%ifnarch ppc ppc64
+%{_openmpi3_load}
+do_build
+%{_openmpi3_unload}
+%endif
+
 %{_mpich_load}
 do_build
 %{_mpich_unload}
@@ -149,8 +190,20 @@ do_build
 do_build
 %{_mvapich2_2_2_unload}
 
-%{_compat_openmpi16_load}
+%{_mvapich23_load}
 do_build
+%{_mvapich23_unload}
+
+%{_compat_openmpi16_load}
+mkdir build-$MPI_COMPILER
+cp -al mpi-benchmarks-2018.0 osu-micro-benchmarks-5.4 build-$MPI_COMPILER
+cd build-$MPI_COMPILER/mpi-benchmarks-2018.0/src
+make -f make_mpich OPTFLAGS="%{optflags}" MPI_HOME="$MPI_HOME" IMB-MPI1 IMB-EXT IMB-IO
+cd ../../osu-micro-benchmarks-5.4
+patch -p1 < %PATCH101
+%configure
+make %{?_smp_mflags}
+cd ../..
 %{_compat_openmpi16_unload}
 %endif
 
@@ -166,25 +219,29 @@ do_build
 %{_mvapich2_2_2_psm2_load}
 do_build
 %{_mvapich2_2_2_psm2_unload}
+
+%{_mvapich23_psm_load}
+do_build
+%{_mvapich23_psm_unload}
+
+%{_mvapich23_psm2_load}
+do_build
+%{_mvapich23_psm2_unload}
 %endif
 
 %install
 do_install() {
   mkdir -p %{buildroot}$MPI_BIN
-  cd .$MPI_COMPILER
-  for X in allgather allgatherv allreduce alltoall alltoallv barrier bcast gather gatherv reduce reduce_scatter scatter scatterv; do
-    cp osu-micro-benchmarks-5.3/mpi/collective/osu_$X %{buildroot}$MPI_BIN/mpitests-osu_$X
+  cd build-$MPI_COMPILER/osu-micro-benchmarks-5.4
+  make install DESTDIR=%{buildroot}/staging
+  find %{buildroot}/staging -name 'osu_*' -type f -perm -111 | while read X; do
+    mv $X %{buildroot}$MPI_BIN/mpitests-$(basename $X)
   done
-  for X in acc_latency get_bw get_latency put_bibw put_bw put_latency; do
-    cp osu-micro-benchmarks-5.3/mpi/one-sided/osu_$X %{buildroot}$MPI_BIN/mpitests-osu_$X
+  cd ../mpi-benchmarks-2018.0/src
+  for X in IMB-*; do
+    cp $X %{buildroot}$MPI_BIN/mpitests-$X
   done
-  for X in bibw bw latency latency_mt mbw_mr multi_lat; do
-    cp osu-micro-benchmarks-5.3/mpi/pt2pt/osu_$X %{buildroot}$MPI_BIN/mpitests-osu_$X
-  done
-  for X in EXT IO MPI1; do
-    cp imb/src/IMB-$X %{buildroot}$MPI_BIN/mpitests-IMB-$X
-  done
-  cd ..
+  cd ../../..
 }
 
 # do N installs, one for each mpi stack
@@ -192,6 +249,12 @@ do_install() {
 do_install
 %{_openmpi_unload}
 
+%ifnarch ppc ppc64
+%{_openmpi3_load}
+do_install
+%{_openmpi3_unload}
+%endif
+
 %{_mpich_load}
 do_install
 %{_mpich_unload}
@@ -208,6 +271,10 @@ do_install
 %{_mvapich2_2_2_load}
 do_install
 %{_mvapich2_2_2_unload}
+
+%{_mvapich23_load}
+do_install
+%{_mvapich23_unload}
 
 %{_compat_openmpi16_load}
 do_install
@@ -226,40 +293,75 @@ do_install
 %{_mvapich2_2_2_psm2_load}
 do_install
 %{_mvapich2_2_2_psm2_unload}
+
+%{_mvapich23_psm_load}
+do_install
+%{_mvapich23_psm_unload}
+
+%{_mvapich23_psm2_load}
+do_install
+%{_mvapich23_psm2_unload}
 %endif
 
 %files openmpi
-%{_libdir}/openmpi/bin/*
+%{_libdir}/openmpi/bin/mpitests-*
+
+%ifnarch ppc ppc64
+%files openmpi3
+%{_libdir}/openmpi3/bin/mpitests-*
+%endif
 
 %files mpich
-%{_libdir}/mpich/bin/*
+%{_libdir}/mpich/bin/mpitests-*
 
 %files mpich32
-%{_libdir}/mpich-3.2/bin/*
+%{_libdir}/mpich-3.2/bin/mpitests-*
 
 %ifnarch s390 s390x
 %files mvapich2
-%{_libdir}/mvapich2/bin/*
+%{_libdir}/mvapich2/bin/mpitests-*
 
 %files mvapich222
-%{_libdir}/mvapich2-2.2/bin/*
+%{_libdir}/mvapich2-2.2/bin/mpitests-*
+
+%files mvapich23
+%{_libdir}/mvapich23/bin/mpitests-*
 
 %files compat-openmpi16
-%{_libdir}/compat-openmpi16/bin/*
+%{_libdir}/compat-openmpi16/bin/mpitests-*
 %endif
 
 %ifarch x86_64
 %files mvapich2-psm
-%{_libdir}/mvapich2-psm/bin/*
+%{_libdir}/mvapich2-psm/bin/mpitests-*
 
 %files mvapich222-psm
-%{_libdir}/mvapich2-2.2-psm/bin/*
+%{_libdir}/mvapich2-2.2-psm/bin/mpitests-*
 
 %files mvapich222-psm2
-%{_libdir}/mvapich2-2.2-psm2/bin/*
+%{_libdir}/mvapich2-2.2-psm2/bin/mpitests-*
+
+%files mvapich23-psm
+%{_libdir}/mvapich23-psm/bin/mpitests-*
+
+%files mvapich23-psm2
+%{_libdir}/mvapich23-psm2/bin/mpitests-*
 %endif
 
 %changelog
+* Wed Jan 17 2018 Michal Schmidt <mschmidt@redhat.com> - 5.4-2
+- Add a mvapich23-psm subpackage.
+- Resolves: rhbz1536192
+
+* Sat Nov 04 2017 Michal Schmidt <mschmidt@redhat.com> - 5.4-1
+- Update IMB to 2018.0.
+- Update OMB to 5.4.
+- Add builds for openmpi 3 and mvapich 2.3.
+- Build IMB NBC and RMA tests.
+- Build OSUMB collective async tests.
+- Add precise Requires.
+- Resolves: rhbz1358437
+
 * Tue Jul 05 2016 Michal Schmidt <mschmidt@redhat.com> - 4.1-1
 - Update IMB to 4.1.
 - Update OSUMB to 5.3.
