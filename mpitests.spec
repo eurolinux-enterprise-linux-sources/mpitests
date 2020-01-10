@@ -1,15 +1,15 @@
 Summary: MPI Benchmarks and tests
 Name: mpitests
 Version: 3.2
-Release: 2%{?dist}
+Release: 4%{?dist}
 License: BSD
 Group: Applications
 Source: mpitests-%{version}.tar.gz
 Patch0: mpitests-2.0-make.patch
 Provides: mpitests
-BuildRoot: /var/tmp/%{name}-%{version}-%{release}-root
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 # mvapich2 only exists on these three arches
-ExclusiveArch: i386 x86_64 ia64
+ExclusiveArch: i686 i386 x86_64 ia64
 
 %description
 Set of popular MPI benchmarks:
@@ -39,13 +39,39 @@ BuildRequires: librdmacm-devel, libibumad-devel
 %description mvapich2
 MPI test suite compiled against the mvapich2 package
 
+%ifarch x86_64
+%package openmpi-psm
+Summary: MPI tests package compiled against openmpi using InfiniPath
+Group: Applications
+BuildRequires: openmpi-psm >= 1.4, openmpi-psm-devel
+BuildRequires: infinipath-psm-devel
+%description openmpi-psm
+MPI test suite compiled against the openmpi package using InfiniPath
+
+%package mvapich-psm
+Summary: MPI tests package compiled against mvapich using InfiniPath
+Group: Applications
+BuildRequires: mvapich-psm-devel >= 1.2.0
+BuildRequires: infinipath-psm-devel
+%description mvapich-psm
+MPI test suite compiled against the mvapich package using InfiniPath
+
+%package mvapich2-psm
+Summary: MPI tests package compiled against mvapich2 using InfiniPath
+Group: Applications
+BuildRequires: mvapich2-psm-devel >= 1.4
+BuildRequires: librdmacm-devel, libibumad-devel
+BuildRequires: infinipath-psm-devel
+%description mvapich2-psm
+MPI test suite compiled against the mvapich2 package using InfiniPath
+%endif
+
 %prep
 %setup -q -a 0
 # secretly patch the code one layer down, not at the top level
 %patch0 -p0 -b .make
 
 %build
-rm -rf %{buildroot}
 RPM_OPT_FLAGS=`echo $RPM_OPT_FLAGS | sed -e 's/-Wp,-D_FORTIFY_SOURCE=.//' | sed -e 's/-fstack-protector//'`
 # We don't do a non-mpi version of this package, just straight to the mpi builds
 export CC=mpicc
@@ -61,7 +87,7 @@ do_build() {
 }
 
 
-# do three builds, one for each mpi stack
+# do N builds, one for each mpi stack
 %{_openmpi_load}
 do_build all
 %{_openmpi_unload}
@@ -73,9 +99,22 @@ do_build osu-mpi1 presta
 %{_mvapich2_load}
 do_build all
 %{_mvapich2_unload}
+%ifarch x86_64
+%{_openmpi_psm_load}
+do_build all
+%{_openmpi_psm_unload}
 
+%{_mvapich_psm_load}
+do_build osu-mpi1 presta
+%{_mvapich_psm_unload}
+
+%{_mvapich2_psm_load}
+do_build all
+%{_mvapich2_psm_unload}
+%endif
 %install
-# do three installs, one for each mpi stack
+rm -rf %{buildroot}
+# do N installs, one for each mpi stack
 %{_openmpi_load}
 mkdir -p %{buildroot}$MPI_BIN
 make -C $MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
@@ -90,7 +129,22 @@ make -C $MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
 mkdir -p %{buildroot}$MPI_BIN
 make -C $MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
 %{_mvapich2_unload}
+%ifarch x86_64
+%{_openmpi_psm_load}
+mkdir -p %{buildroot}$MPI_BIN
+make -C $MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
+%{_openmpi_psm_unload}
 
+%{_mvapich_psm_load}
+mkdir -p %{buildroot}$MPI_BIN
+make -C $MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
+%{_mvapich_psm_unload}
+
+%{_mvapich2_psm_load}
+mkdir -p %{buildroot}$MPI_BIN
+make -C $MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
+%{_mvapich2_psm_unload}
+%endif
 %clean
 rm -rf %{buildroot}
 
@@ -105,8 +159,29 @@ rm -rf %{buildroot}
 %files mvapich2
 %defattr(-, root, root, -)
 %{_libdir}/mvapich2/bin/*
+%ifarch x86_64
+%files openmpi-psm
+%defattr(-, root, root, -)
+%{_libdir}/openmpi-psm/bin/*
 
+%files mvapich-psm
+%defattr(-, root, root, -)
+%{_libdir}/mvapich-psm/bin/*
+
+%files mvapich2-psm
+%defattr(-, root, root, -)
+%{_libdir}/mvapich2-psm/bin/*
+%endif
 %changelog
+* Mon Aug 22 2011 Jay Fenlason <fenlason@redhat.com> 3.2-4.el6
+- BuildRequires infinipath-psm-devel for the infinipath subpackages.
+  Related: rhbz725016
+
+* Thu Aug 18 2011 Jay Fenlason <fenlason@redhat.com> 3.2-3.el6
+- Build using new mvapich, mvapich2, and openmpi.
+  Add support for the -psm variants of the three mpi stacks.
+  Related: rhbz725016
+
 * Fri Jan 15 2010 Doug Ledford <dledford@redhat.com> - 3.2-2.el6
 - Rebuild using Fedora MPI package guidelines semantics
 - Related: bz543948
