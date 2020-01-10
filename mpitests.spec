@@ -1,25 +1,23 @@
 Summary: MPI Benchmarks and tests
 Name: mpitests
-Version: 3.2
-Release: 14%{?dist}
-License: BSD
+Version: 4.1
+Release: 1%{?dist}
+License: CPL and BSD
 Group: Applications/Engineering
-# We get the mpitests.tar.gz file from an OFED release.
-# Unfortunately, they're not good about changing the name
-# of the tarball when they change the contents.
-# and we had to do some cleanup on the contents.
+# These days we get the benchmark soucres from Intel and OSU directly
+# rather than from openfabrics.
 URL: http://www.openfabrics.org
-Source: mpitests-%{version}-rh.tar.gz
-Patch0: mpitests-3.2-make.patch
-Patch1: mpitests-win-free.patch
-Provides: mpitests
+# https://software.intel.com/en-us/articles/intel-mpi-benchmarks
+Source0: https://software.intel.com/sites/default/files/managed/a3/b2/IMB_4.1.tgz
+Source1: http://mvapich.cse.ohio-state.edu/download/mvapich/osu-micro-benchmarks-5.3.tar.gz
+Patch0: 0001-imb-fix-Makefiles.patch
+Patch1: 0001-mpi-collective-no-async-ops-MPI_I.patch
 BuildRequires: hwloc-devel, libibmad-devel
 
 %description
 Set of popular MPI benchmarks:
-IMB-3.2
-Presta-1.4.0
-OSU benchmarks ver 3.1.1
+IMB-4.1
+OSU benchmarks ver 5.3
 
 %package openmpi
 Summary: MPI tests package compiled against openmpi
@@ -36,6 +34,14 @@ BuildRequires: librdmacm-devel, libibumad-devel
 %description mpich
 MPI test suite compiled against the mpich package
 
+%package mpich32
+Summary: MPI tests package compiled against mpich-3.2
+Group: Applications
+BuildRequires: mpich-3.2-devel
+BuildRequires: librdmacm-devel, libibumad-devel
+%description mpich32
+MPI test suite compiled against the mpich-3.2 package
+
 # mvapich2 is not yet built on s390(x)
 %ifnarch s390 s390x
 %package mvapich2
@@ -45,6 +51,14 @@ BuildRequires: mvapich2-devel >= 1.4
 BuildRequires: librdmacm-devel, libibumad-devel
 %description mvapich2
 MPI test suite compiled against the mvapich2 package
+
+%package mvapich222
+Summary: MPI tests package compiled against mvapich2-2.2
+Group: Applications
+BuildRequires: mvapich2-2.2-devel
+BuildRequires: librdmacm-devel, libibumad-devel
+%description mvapich222
+MPI test suite compiled against the mvapich2-2.2 package
 
 # s390(x) did not have openmpi-1.6
 %package compat-openmpi16
@@ -65,13 +79,34 @@ BuildRequires: librdmacm-devel, libibumad-devel
 BuildRequires: infinipath-psm-devel
 %description mvapich2-psm
 MPI test suite compiled against the mvapich2 package using InfiniPath
+
+%package mvapich222-psm
+Summary: MPI tests package compiled against mvapich2-2.2 using InfiniPath
+Group: Applications
+BuildRequires: mvapich2-2.2-psm-devel
+BuildRequires: librdmacm-devel, libibumad-devel
+BuildRequires: infinipath-psm-devel
+%description mvapich222-psm
+MPI test suite compiled against the mvapich2-2.2 package using InfiniPath
+
+%package mvapich222-psm2
+Summary: MPI tests package compiled against mvapich2-2.2 using OmniPath
+Group: Applications
+BuildRequires: mvapich2-2.2-psm2-devel
+BuildRequires: librdmacm-devel, libibumad-devel
+BuildRequires: libpsm2-devel
+%description mvapich222-psm2
+MPI test suite compiled against the mvapich2-2.2 package using OmniPath
 %endif
 
 %prep
-%setup -q
-# secretly patch the code one layer down, not at the top level
-%patch0 -p1 -b .make
-%patch1 -p1 -b .win_free
+%setup -c 
+%setup -T -D -a 1
+cd imb
+%patch0 -p1 -b.make
+cd ../osu-micro-benchmarks-5.3
+%patch1 -p1 -b.noasync
+cd ..
 
 %build
 RPM_OPT_FLAGS=`echo $RPM_OPT_FLAGS | sed -e 's/-Wp,-D_FORTIFY_SOURCE=.//' -e 's/-fstack-protector-strong//' -e 's/-fstack-protector//'`
@@ -81,68 +116,116 @@ export CXX=mpicxx
 export FC=mpif90
 export F77=mpif77
 export CFLAGS="$RPM_OPT_FLAGS -fno-strict-aliasing"
-do_build() { 
+do_build() {
   mkdir .$MPI_COMPILER
   cp -al * .$MPI_COMPILER
-  cd .$MPI_COMPILER
-  make $*
-  cd ..
+  cd .$MPI_COMPILER/imb/src
+  make -f make_mpich OPTFLAGS="%{optflags}" IMB-MPI1 IMB-EXT IMB-IO
+  cd ../../osu-micro-benchmarks-5.3
+  %configure
+  make %{?_smp_mflags}
+  cd ../..
 }
 
 # do N builds, one for each mpi stack
 %{_openmpi_load}
-do_build all
+do_build
 %{_openmpi_unload}
 
 %{_mpich_load}
-do_build all
+do_build
 %{_mpich_unload}
+
+%{_mpich_3_2_load}
+do_build
+%{_mpich_3_2_unload}
 
 %ifnarch s390 s390x
 %{_mvapich2_load}
-do_build all
+do_build
 %{_mvapich2_unload}
 
+%{_mvapich2_2_2_load}
+do_build
+%{_mvapich2_2_2_unload}
+
 %{_compat_openmpi16_load}
-do_build all
+do_build
 %{_compat_openmpi16_unload}
 %endif
 
 %ifarch x86_64
 %{_mvapich2_psm_load}
-do_build all
+do_build
 %{_mvapich2_psm_unload}
+
+%{_mvapich2_2_2_psm_load}
+do_build
+%{_mvapich2_2_2_psm_unload}
+
+%{_mvapich2_2_2_psm2_load}
+do_build
+%{_mvapich2_2_2_psm2_unload}
 %endif
 
 %install
+do_install() {
+  mkdir -p %{buildroot}$MPI_BIN
+  cd .$MPI_COMPILER
+  for X in allgather allgatherv allreduce alltoall alltoallv barrier bcast gather gatherv reduce reduce_scatter scatter scatterv; do
+    cp osu-micro-benchmarks-5.3/mpi/collective/osu_$X %{buildroot}$MPI_BIN/mpitests-osu_$X
+  done
+  for X in acc_latency get_bw get_latency put_bibw put_bw put_latency; do
+    cp osu-micro-benchmarks-5.3/mpi/one-sided/osu_$X %{buildroot}$MPI_BIN/mpitests-osu_$X
+  done
+  for X in bibw bw latency latency_mt mbw_mr multi_lat; do
+    cp osu-micro-benchmarks-5.3/mpi/pt2pt/osu_$X %{buildroot}$MPI_BIN/mpitests-osu_$X
+  done
+  for X in EXT IO MPI1; do
+    cp imb/src/IMB-$X %{buildroot}$MPI_BIN/mpitests-IMB-$X
+  done
+  cd ..
+}
+
 # do N installs, one for each mpi stack
 %{_openmpi_load}
-mkdir -p %{buildroot}$MPI_BIN
-make -C .$MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
+do_install
 %{_openmpi_unload}
 
 %{_mpich_load}
-mkdir -p %{buildroot}$MPI_BIN
-make -C .$MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
+do_install
 %{_mpich_unload}
+
+%{_mpich_3_2_load}
+do_install
+%{_mpich_3_2_unload}
 
 %ifnarch s390 s390x
 %{_mvapich2_load}
-mkdir -p %{buildroot}$MPI_BIN
-make -C .$MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
+do_install
 %{_mvapich2_unload}
 
+%{_mvapich2_2_2_load}
+do_install
+%{_mvapich2_2_2_unload}
+
 %{_compat_openmpi16_load}
-mkdir -p %{buildroot}$MPI_BIN
-make -C .$MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
+do_install
 %{_compat_openmpi16_unload}
 %endif
 
 %ifarch x86_64
 %{_mvapich2_psm_load}
-mkdir -p %{buildroot}$MPI_BIN
-make -C .$MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
+do_install
 %{_mvapich2_psm_unload}
+
+%{_mvapich2_2_2_psm_load}
+do_install
+%{_mvapich2_2_2_psm_unload}
+
+%{_mvapich2_2_2_psm2_load}
+do_install
+%{_mvapich2_2_2_psm2_unload}
 %endif
 
 %files openmpi
@@ -151,9 +234,15 @@ make -C .$MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
 %files mpich
 %{_libdir}/mpich/bin/*
 
+%files mpich32
+%{_libdir}/mpich-3.2/bin/*
+
 %ifnarch s390 s390x
 %files mvapich2
 %{_libdir}/mvapich2/bin/*
+
+%files mvapich222
+%{_libdir}/mvapich2-2.2/bin/*
 
 %files compat-openmpi16
 %{_libdir}/compat-openmpi16/bin/*
@@ -162,9 +251,22 @@ make -C .$MPI_COMPILER DESTDIR=%{buildroot} INSTALL_DIR=$MPI_BIN install
 %ifarch x86_64
 %files mvapich2-psm
 %{_libdir}/mvapich2-psm/bin/*
+
+%files mvapich222-psm
+%{_libdir}/mvapich2-2.2-psm/bin/*
+
+%files mvapich222-psm2
+%{_libdir}/mvapich2-2.2-psm2/bin/*
 %endif
 
 %changelog
+* Tue Jul 05 2016 Michal Schmidt <mschmidt@redhat.com> - 4.1-1
+- Update IMB to 4.1.
+- Update OSUMB to 5.3.
+- Add subpackages for new mpich and mvapich2 versions and variants.
+- Resolves: rhbz961885
+- Resolves: rhbz1093466
+
 * Mon Sep 07 2015 Michal Schmidt <mschmidt@redhat.com> - 3.2-14
 - Rebuild for new openmpi. Add compat-openmpi16 subpackage.
 - Resolves: rhbz1258866
