@@ -1,0 +1,12 @@
+--- mpitests-3.2/IMB-3.2/src/IMB_window.c.orig	2013-02-25 15:50:55.000000000 -0500
++++ mpitests-3.2/IMB-3.2/src/IMB_window.c	2013-02-25 15:51:22.000000000 -0500
+@@ -140,6 +140,9 @@ Output variables: 
+                          c_info->rank, 0, 1, c_info->r_data_type, c_info->WIN);
+           MPI_ERRHAND(ierr);
+           }
++          /* Added a call to MPI_WIN_FENCE, per MPI-2.1 11.2.1 */
++          ierr = MPI_Win_fence(0, c_info->WIN);
++          MPI_ERRHAND(ierr);
+           ierr = MPI_Win_free(&c_info->WIN);
+           MPI_ERRHAND(ierr);
+ 	}
